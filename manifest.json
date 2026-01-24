@@ -1,0 +1,14 @@
+{
+  "id": "com.stremio.pixeldrain",
+  "version": "1.0.0",
+  "name": "Pixeldrain Streamer",
+  "description": "Stream your media files from Pixeldrain account",
+  "logo": "https://i.imgur.com/5pXUQ7M.png",
+  "resources": ["stream"],
+  "types": ["movie", "series", "animes"],
+  "catalogs": [],
+  "idPrefixes": ["tt", "tmdb"],
+  "behaviorHints": {
+    "configurable": false
+  }
+}
