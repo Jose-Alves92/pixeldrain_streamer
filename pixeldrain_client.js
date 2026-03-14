@@ -16,31 +16,56 @@ class PixeldrainClient {
     }
 
     async searchContent(type, imdbId) {
-        
         try {
-            // Get user's file list
             const response = await this.client.get('/user/files');
             const files = response.data.files || [];
             
-            // Filter files by type and IMDB ID ex. tt2934286:2:3-Hello.S02E03
-            const filteredFiles = files.filter(file => {
-                const Imdb = file.name.split("-")[0];
-                return Imdb.toLowerCase().includes(imdbId.toLowerCase());
-            });
+            let filteredFiles;
 
-            // Convert to Stremio stream format
-            return filteredFiles.map(file => ({
-                name: `Pixeldrain: ${file.name.split("-")[2]}`,
-                title: file.name.split("-")[1],
-                url: `https://pixeldrain.com/api/file/${file.id}?download`,
-                ytId: null,
-                infoHash: null,
-                fileIdx: null,
-                behaviorHints: {
-                    bingeGroup: `pixeldrain-${imdbId}`,
-                    notWebReady: false
+            if (type === 'movie') {
+                // For movies, imdbId is 'tt1234567'
+                filteredFiles = files.filter(file => {
+                    const fileImdb = file.name.split('.')[0];
+                    return fileImdb.toLowerCase() === imdbId.toLowerCase();
+                });
+            } else if (type === 'series') {
+                // For series, imdbId is 'tt1234567:s:e'
+                const [id, season, episode] = imdbId.split(':');
+
+                filteredFiles = files.filter(file => {
+                    const parts = file.name.split('.');
+                    if (parts.length < 3) return false;
+
+                    const fileImdb = parts[0];
+                    const fileSeason = parts[1];
+                    const fileEpisode = parts[2];
+
+                    return fileImdb.toLowerCase() === id.toLowerCase() &&
+                           fileSeason === season &&
+                           fileEpisode === episode;
+                });
+            }
+
+            return (filteredFiles || []).map(file => {
+                let title = file.name;
+                const parts = file.name.split('.');
+                const baseImdb = type === 'series' ? imdbId.split(':')[0] : imdbId;
+
+                if (type === 'series' && parts.length >= 4) {
+                    title = parts.slice(3).join('.');
+                } else if (type === 'movie' && parts.length >= 2) {
+                    title = parts.slice(1).join('.');
                 }
-            }));
+
+                return {
+                    name: `Pixeldrain`,
+                    title: title,
+                    url: `https://pixeldrain.com/api/file/${file.id}?download`,
+                    behaviorHints: {
+                        bingeGroup: `pixeldrain-${baseImdb}`
+                    }
+                };
+            });
         } catch (error) {
             console.error('Pixeldrain search error:', error.message);
             return [];
